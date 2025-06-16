@@ -6070,11 +6070,17 @@ TorrentImpl *SessionImpl::createTorrent(const lt::torrent_handle &nativeHandle, 
     return torrent;
 }
 
-void SessionImpl::handleTorrentRemovedAlert(const lt::torrent_removed_alert */*alert*/)
+void SessionImpl::handleTorrentRemovedAlert(const lt::torrent_removed_alert *alert)
 {
     // We cannot consider `torrent_removed_alert` as a starting point for removing content,
     // because it has an inconsistent posting time between different versions of libtorrent,
     // so files may still be in use in some cases.
+#ifdef QBT_USES_LIBTORRENT2
+    const InfoHash::WrappedType infoHash = alert->info_hashes;
+#else
+    const InfoHash::WrappedType infoHash = alert->info_hash;
+#endif
+    emit torrentRemoved(infoHash);
 }
 
 void SessionImpl::handleTorrentDeletedAlert(const lt::torrent_deleted_alert *alert)

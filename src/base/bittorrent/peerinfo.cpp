@@ -221,6 +221,16 @@ QString PeerInfo::client() const
     return client;
 }
 
+QString PeerInfo::peerId() const
+{
+    // when peer ID is not known yet it contains only zero bytes,
+    // do not create string in such case, return empty string instead
+    if (m_nativeInfo.pid.is_all_zeros())
+        return {};
+
+    return QString::fromLatin1(reinterpret_cast<const char *>(m_nativeInfo.pid.data()), m_nativeInfo.pid.size());
+}
+
 QString PeerInfo::peerIdClient() const
 {
     // when peer ID is not known yet it contains only zero bytes,

@@ -105,6 +105,10 @@
 #endif
 #endif
 
+#ifndef DISABLE_STATICS
+#include "base/statics/statics.h"
+#endif
+
 namespace
 {
 #define SETTINGS_KEY(name) u"Application/" name
@@ -850,6 +854,9 @@ int Application::exec()
     Net::DownloadManager::initInstance();
 
     BitTorrent::Session::initInstance();
+#ifndef DISABLE_STATICS
+    StaticsController::instance().start();
+#endif
 #ifndef DISABLE_GUI
     UIThemeManager::initInstance();
 
@@ -1347,6 +1354,9 @@ void Application::cleanup()
         if (m_desktopIntegration->menu())
             m_desktopIntegration->menu()->setEnabled(false);
     }
+#ifndef DISABLE_STATICS
+    StaticsController::instance().stop();
+#endif
 
     if (m_window)
     {

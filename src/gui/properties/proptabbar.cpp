@@ -87,6 +87,15 @@ PropTabBar::PropTabBar(QWidget *parent)
     filesButton->setShortcut(Qt::ALT | Qt::Key_Z);
     addWidget(filesButton);
     m_btnGroup->addButton(filesButton, FilesTab);
+    // Contribution tab
+    QPushButton *contributionButton = new QPushButton(
+#ifndef Q_OS_MACOS
+            UIThemeManager::instance()->getIcon(u"contribution"_s),
+#endif
+            tr("Contribution"), parent);
+    contributionButton->setShortcut(Qt::ALT | Qt::Key_X);
+    addWidget(contributionButton);
+    m_btnGroup->addButton(contributionButton, ContributionTab);
     // Spacer
     addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed));
     // Speed tab

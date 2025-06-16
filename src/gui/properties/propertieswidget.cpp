@@ -125,6 +125,10 @@ PropertiesWidget::PropertiesWidget(QWidget *parent)
     // Peers list
     m_peerList = new PeerListWidget(this);
     m_ui->vBoxLayoutPeerPage->addWidget(m_peerList);
+    // Contribution widget
+    m_contributionWidget = new TorrentContributionWidget(this);
+    m_ui->verticalLayoutContributionHistory->addWidget(m_contributionWidget);
+
     // Tab bar
     m_tabBar = new PropTabBar(nullptr);
     m_tabBar->setContentsMargins(0, 5, 0, 5);
@@ -314,6 +318,7 @@ void PropertiesWidget::loadTorrentInfos(BitTorrent::Torrent *const torrent)
     m_piecesAvailability->setTorrent(m_torrent);
     m_trackerList->setTorrent(m_torrent);
     m_ui->filesList->setContentHandler(m_torrent);
+    m_contributionWidget->setTorrent(m_torrent);
     if (!m_torrent)
         return;
 
@@ -513,6 +518,9 @@ void PropertiesWidget::loadDynamicData()
         break;
     case PropTabBar::FilesTab:
         m_ui->filesList->refresh();
+        break;
+    case PropTabBar::ContributionTab:
+        m_contributionWidget->refreshContribution();
         break;
     default:;
     }

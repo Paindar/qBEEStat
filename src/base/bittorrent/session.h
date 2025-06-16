@@ -34,6 +34,7 @@
 
 #include "base/pathfwd.h"
 #include "base/tagset.h"
+#include "base/bittorrent/infohash.h"
 #include "addtorrentparams.h"
 #include "categoryoptions.h"
 #include "sharelimitaction.h"
@@ -515,6 +516,7 @@ namespace BitTorrent
         void tagRemoved(const Tag &tag);
         void torrentAboutToBeRemoved(Torrent *torrent);
         void torrentAdded(Torrent *torrent);
+        void torrentRemoved(const InfoHash::WrappedType& infoHash);
         void torrentCategoryChanged(Torrent *torrent, const QString &oldCategory);
         void torrentFinished(Torrent *torrent);
         void torrentFinishedChecking(Torrent *torrent);

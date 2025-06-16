@@ -142,6 +142,7 @@ add_library(qbt_gui STATIC
     watchedfolderoptionsdialog.h
     watchedfoldersmodel.h
     windowstate.h
+    torrentcontributionwidget.h
 
     # sources
     aboutdialog.cpp
@@ -239,6 +240,7 @@ add_library(qbt_gui STATIC
     utils.cpp
     watchedfolderoptionsdialog.cpp
     watchedfoldersmodel.cpp
+    torrentcontributionwidget.cpp
 
     # generated .ui headers
     ${UI_HEADERS}

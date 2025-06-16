@@ -1182,6 +1182,9 @@
        </property>
       </layout>
      </widget>
+     <widget class="QWidget" name="pageContribution">
+      <layout class="QVBoxLayout" name="verticalLayoutContributionHistory"/>
+     </widget>
     </widget>
    </item>
   </layout>

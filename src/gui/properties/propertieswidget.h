@@ -34,6 +34,7 @@
 
 #include "base/settingvalue.h"
 #include "gui/filterpatternformat.h"
+#include "gui/torrentcontributionwidget.h"
 
 class QPushButton;
 class QTreeView;
@@ -111,6 +112,7 @@ private:
     SlideState m_state;
     PeerListWidget *m_peerList = nullptr;
     TrackerListWidget *m_trackerList = nullptr;
+    TorrentContributionWidget *m_contributionWidget = nullptr;
     QWidget *m_speedWidget = nullptr;
     QList<int> m_slideSizes;
     DownloadedPiecesBar *m_downloadedPieces = nullptr;

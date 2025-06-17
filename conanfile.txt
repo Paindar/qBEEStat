@@ -1,6 +1,6 @@
 [requires]
 boost/1.81.0
-libtorrent/2.0.10
+libtorrent/1.2.19
 openssl/3.3.2
 zlib/1.2.11
 

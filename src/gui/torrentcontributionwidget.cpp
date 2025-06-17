@@ -1,7 +1,7 @@
 #include "torrentContributionwidget.h"
 #include <QStringList>
 #include <QHash>
-#include "base/statics/statics.h"
+#include "base/statistics/statistics.h"
 #include "base/logger.h"
 #include "base/utils/misc.h"
 
@@ -10,9 +10,9 @@ using namespace Qt::Literals::StringLiterals;
 TorrentContributionModel::TorrentContributionModel(QObject *parent)
     : QAbstractItemModel(parent)
 {
-    StaticsController& controller = StaticsController::instance();
-    connect(this, &TorrentContributionModel::requestTorrentContribution, &controller, &StaticsController::onRequestTorrentContribution);
-    connect(&controller, &StaticsController::getTorrentContribution, this, &TorrentContributionModel::onGetTorrentContribution);
+    StatisticsController& controller = StatisticsController::instance();
+    connect(this, &TorrentContributionModel::requestTorrentContribution, &controller, &StatisticsController::onRequestTorrentContribution);
+    connect(&controller, &StatisticsController::getTorrentContribution, this, &TorrentContributionModel::onGetTorrentContribution);
     m_lastTorrent = nullptr;
 }
 void TorrentContributionModel::setTorrent(BitTorrent::Torrent *const torrent)
@@ -226,7 +226,7 @@ void TorrentContributionWidget::saveExpandedState()
 {
     // Save expanded state of peers
     m_expandedPeers.clear();
-    for (int row = 0; row < model()->rowCount(); ++row) 
+    for (int row = 0; row < model()->rowCount(); ++row)
     {
         QModelIndex idx = model()->index(row, 0);
         if (isExpanded(idx))

@@ -9,11 +9,11 @@
 #include "tbl/tbl_peer_history.h"
 #include "tbl/tbl_contribution_history.h"
 
-class DbStaticsStorage
+class DbStatisticsStorage
 {
-    Q_DISABLE_COPY_MOVE(DbStaticsStorage)
+    Q_DISABLE_COPY_MOVE(DbStatisticsStorage)
 public:
-    static DbStaticsStorage &instance();
+    static DbStatisticsStorage &instance();
     static const Path &dbPath();
 public:
     DB::TblTorrentInfo& getTorrentInfoTable();
@@ -22,8 +22,8 @@ public:
     DB::TblPeerHistory& getPeerHistoryTable();
     DB::TblContributionHistory& getContributionHistoryTable();
 private:
-    explicit DbStaticsStorage();
-    virtual ~DbStaticsStorage();
+    explicit DbStatisticsStorage();
+    virtual ~DbStatisticsStorage();
     
 private:
     const Path m_dbPath;

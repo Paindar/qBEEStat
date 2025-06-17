@@ -46,5 +46,3 @@ namespace DB
         QSqlDatabase m_db;
     };
 }
-
-        

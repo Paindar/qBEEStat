@@ -20,7 +20,7 @@ namespace DB
         {
             static TblTorrentInfo instance(db);
             return instance;
-        } 
+        }
     public:
         bool getTorrentInfo(const QString& hashId, TorrentInfo& info) const;
         bool getAllTorrents(QList<TorrentInfo>& torrents) const;

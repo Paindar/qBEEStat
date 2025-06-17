@@ -56,7 +56,7 @@ namespace DB
     bool TblPeerInfo::getPeers(const QString& torrentHashId, QList<PeerInfo>& result) const
     {
         result.clear();
-        for (const PeerInfo& peer : m_cache) 
+        for (const PeerInfo& peer : m_cache)
         {
             if (peer.torrentHashId == torrentHashId) 
             {
@@ -130,9 +130,9 @@ namespace DB
         QList<PeerInfo> peers;
         QSqlQuery query(m_db);
         query.prepare(u"SELECT peer_ip, peer_id, torrent_hash_id, upload_bytes, download_bytes, start_time FROM peer_info"_s);
-        if (query.exec()) 
+        if (query.exec())
         {
-            while (query.next()) 
+            while (query.next())
             {
                 PeerInfo info;
                 info.peerIp = query.value(0).toString();
@@ -171,7 +171,7 @@ namespace DB
     bool TblPeerInfo::updatePeerTrafficInDatabase(const PrimaryKey& key, const qint64 uploadBytes, const qint64 downloadBytes, QString& error)
     {
         QSqlQuery query(m_db);
-        query.prepare(u"UPDATE peer_info SET upload_bytes = :upload_bytes, download_bytes = :download_bytes" 
+        query.prepare(u"UPDATE peer_info SET upload_bytes = :upload_bytes, download_bytes = :download_bytes"
             " WHERE torrent_hash_id = :torrent_hash_id and peer_ip = :peer_ip"_s);
         query.bindValue(u":torrent_hash_id"_s, key.torrentHashId);
         query.bindValue(u":peer_ip"_s, key.peerIp);

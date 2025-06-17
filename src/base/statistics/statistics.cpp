@@ -252,15 +252,13 @@ void StatisticsController::handleStatisticsStop()
             return;
         }
     }
-
-
 }
+
 void StatisticsController::handleTorrentAdded(const BitTorrent::Torrent *torrent)
 {
     if (!torrent) return; // Check if torrent is valid
     LogMsg(u"Torrent added:"_s + torrent->name());
     QString error;
-    
     QString torrentHash = getHashId(torrent->infoHash());
     // Add torrent info to the database
     DB::TblTorrentInfo& tblTorrentInfo = DbStatisticsStorage::instance().getTorrentInfoTable();
@@ -285,7 +283,6 @@ void StatisticsController::handleTorrentAdded(const BitTorrent::Torrent *torrent
                .arg(torrentHash, torrent->name(), torrent->savePath().toString(), QString::number(torrent->totalSize())), Log::CRITICAL);
         return;
     }
-    
 }
 void StatisticsController::handleTorrentFinished(const BitTorrent::Torrent* torrent)
 {
@@ -543,7 +540,6 @@ bool StatisticsController::handleCollectData()
             }
         }
     }
-    
     return true; // Return true if data collection was successful, false otherwise
 }
 

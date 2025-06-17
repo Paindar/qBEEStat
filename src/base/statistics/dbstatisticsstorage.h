@@ -24,7 +24,7 @@ public:
 private:
     explicit DbStatisticsStorage();
     virtual ~DbStatisticsStorage();
-    
+
 private:
     const Path m_dbPath;
     QSqlDatabase m_db;

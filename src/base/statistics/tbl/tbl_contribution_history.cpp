@@ -112,7 +112,7 @@ namespace DB
             error = query.lastError().text();
             return false;
         }
-        
+
         while (query.next())
         {
             ContributionHistory history;
@@ -138,13 +138,12 @@ namespace DB
         query.bindValue(u":download_bytes"_s, downloadBytes);
         query.bindValue(u":start_time"_s, startTime);
         query.bindValue(u":end_time"_s, endTime);
-        
+
         if (!query.exec())
         {
             error = query.lastError().text();
             return false;
         }
-        
         return true;
     }
 }

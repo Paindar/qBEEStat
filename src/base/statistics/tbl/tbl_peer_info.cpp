@@ -58,7 +58,7 @@ namespace DB
         result.clear();
         for (const PeerInfo& peer : m_cache)
         {
-            if (peer.torrentHashId == torrentHashId) 
+            if (peer.torrentHashId == torrentHashId)
             {
                 result.append(peer);
             }

@@ -22,7 +22,7 @@ namespace DB
             static TblPeerHistory instance(db);
             return instance;
         }
-        
+
     public:
         bool insertTorrentHistory(const QString& peerIp, const QString& torrentHashId, const QString& eventId, const QString& eventArgs);
         bool getPeerHistory(const QString& peerIp, const QString& torrentHashId, QList<PeerHistory>& result) const;

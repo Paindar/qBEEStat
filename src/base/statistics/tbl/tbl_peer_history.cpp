@@ -105,7 +105,7 @@ namespace DB
             error = query.lastError().text();
             return false;
         }
-        
+
         while (query.next())
         {
             PeerHistory history;
@@ -129,7 +129,7 @@ namespace DB
             error = query.lastError().text();
             return false;
         }
-        
+
         while (query.next())
         {
             PeerHistory history;
@@ -141,6 +141,5 @@ namespace DB
             result.append(history);
         }
         return true;
-        
     }
 }

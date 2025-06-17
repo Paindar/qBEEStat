@@ -17,7 +17,7 @@ namespace DB
             LogMsg(u"Failed to create peer_history table"_s, Log::CRITICAL);
         }
     }
-    
+
     bool TblPeerHistory::insertTorrentHistory(const QString& peerIp, const QString& torrentHashId, const QString& eventId, const QString& eventArgs)
     {
         QString error;
@@ -50,6 +50,7 @@ namespace DB
         }
         return true;
     }
+
     bool TblPeerHistory::createTable()
     {
         if(!m_db.tables().contains(u"peer_history"_s))

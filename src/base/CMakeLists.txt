@@ -119,13 +119,13 @@ add_library(qbt_base STATIC
     utils/thread.h
     utils/version.h
     version.h
-    statics/statics.h
-    statics/dbstaticsstorage.h
-    statics/tbl/tbl_torrent_info.h
-    statics/tbl/tbl_torrent_history.h
-    statics/tbl/tbl_peer_info.h
-    statics/tbl/tbl_peer_history.h
-    statics/tbl/tbl_contribution_history.h
+    statistics/statistics.h
+    statistics/dbstatisticsstorage.h
+    statistics/tbl/tbl_torrent_info.h
+    statistics/tbl/tbl_torrent_history.h
+    statistics/tbl/tbl_peer_info.h
+    statistics/tbl/tbl_peer_history.h
+    statistics/tbl/tbl_contribution_history.h
 
     # sources
     addtorrentmanager.cpp
@@ -221,14 +221,14 @@ add_library(qbt_base STATIC
     utils/string.cpp
     utils/thread.cpp
     utils/version.cpp
-    statics/statics.cpp
-    statics/dbstaticsstorage.cpp
-    statics/statics.cpp
-    statics/tbl/tbl_torrent_info.cpp 
-    statics/tbl/tbl_torrent_history.cpp
-    statics/tbl/tbl_peer_info.cpp 
-    statics/tbl/tbl_peer_history.cpp
-    statics/tbl/tbl_contribution_history.cpp
+    statistics/statistics.cpp
+    statistics/dbstatisticsstorage.cpp
+    statistics/statistics.cpp
+    statistics/tbl/tbl_torrent_info.cpp
+    statistics/tbl/tbl_torrent_history.cpp
+    statistics/tbl/tbl_peer_info.cpp
+    statistics/tbl/tbl_peer_history.cpp
+    statistics/tbl/tbl_contribution_history.cpp
 )
 
 target_link_libraries(qbt_base

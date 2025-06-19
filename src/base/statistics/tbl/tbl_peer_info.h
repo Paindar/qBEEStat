@@ -62,4 +62,3 @@ namespace DB
     bool operator==(const TblPeerInfo::PrimaryKey& a, const TblPeerInfo::PrimaryKey& b);
     uint qHash(const TblPeerInfo::PrimaryKey& key, uint seed = 0);
 }
-

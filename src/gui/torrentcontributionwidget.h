@@ -8,7 +8,7 @@
 #include <QString>
 #include <QDateTime>
 #include "base/bittorrent/torrent.h"
-#include "base/statics/tbl/tbl_contribution_history.h"
+#include "base/statistics/tbl/tbl_contribution_history.h"
 
 // Define PeriodRecord as needed
 struct PeriodRecord {
@@ -53,7 +53,7 @@ private:
     QList<DistinctRecord> m_records;
     BitTorrent::Torrent *m_lastTorrent = nullptr;
 };
-//Widget->Model->statics->Model->Widget
+//Widget->Model->statistics->Model->Widget
 class TorrentContributionWidget : public QTreeView
 {
     Q_OBJECT

@@ -6,14 +6,14 @@
 #include <memory>
 #include <queue>
 #include <mutex>
-#include "dbstaticsstorage.h"
+#include "dbstatisticsstorage.h"
 #include "base/bittorrent/torrent.h"
 #include "base/bittorrent/infohash.h"
 
-class StaticsController : public QObject
+class StatisticsController : public QObject
 {
     Q_OBJECT
-    Q_DISABLE_COPY_MOVE(StaticsController)
+    Q_DISABLE_COPY_MOVE(StatisticsController)
 public:
     // Enum to represent the state of the controller
     enum class State
@@ -23,9 +23,9 @@ public:
     };
 public:
     // Static methods to access the controller instance
-    static StaticsController& instance()
+    static StatisticsController& instance()
     {
-        static StaticsController instance;
+        static StatisticsController instance;
         return instance;
     }
     void start(); // Start the controller
@@ -33,8 +33,8 @@ public:
     bool isRunning() const; // Check if the controller is running
     void setInterval(int interval); // Set the interval for the controller
 private:
-    explicit StaticsController() = default; // Constructor
-    virtual ~StaticsController() = default;
+    explicit StatisticsController() = default; // Constructor
+    virtual ~StatisticsController() = default;
     bool subscribeAlert(); // Subscribe to alerts
     bool unsubscribeAlert(); // Unsubscribe from alerts
     void runAction(); // Run method for the thread
@@ -60,14 +60,14 @@ private:
     std::thread m_workThread; // Thread for the controller
     std::atomic<State> m_enStatus = State::Stopped; // Flag to indicate if the controller is running
     int m_interval = 1000; // Interval for the controller in milliseconds
-    std::shared_ptr<DbStaticsStorage> m_pDbStaticsStorage; // Pointer to the database storage
+    std::shared_ptr<DbStatisticsStorage> m_pDbStatisticsStorage; // Pointer to the database storage
     std::mutex m_mutex; // Mutex for thread safety
     std::queue<Event> m_alertQueue; // Queue for alerts
 private:
     // private tool methods
     QString getHashId(const BitTorrent::InfoHash &torrentID) const;
     // Private methods to handle different events
-    void handleStaticsStop();
+    void handleStatisticsStop();
     void handleTorrentAdded(const BitTorrent::Torrent* torrent);
     void handleTorrentFinished(const BitTorrent::Torrent* torrent);
     void handleTorrentRemove(const std::shared_ptr<BitTorrent::InfoHash::WrappedType> torrentID);

@@ -32,18 +32,13 @@ macro(find_libtorrent version)
             set_package_properties(LibtorrentRasterbar PROPERTIES TYPE REQUIRED)
         endif()
     else()
-        find_package(LibtorrentRasterbar ${version}  COMPONENTS torrent-rasterbar)
+        find_package(LibtorrentRasterbar ${version} REQUIRED COMPONENTS torrent-rasterbar)
     endif()
 endmacro()
 
-find_libtorrent(${minLibtorrentVersion})
-
-if (NOT LibtorrentRasterbar_FOUND)
-    find_libtorrent(${minLibtorrent1Version})
-endif()
-
-if (NOT LibtorrentRasterbar_FOUND)
-    message(FATAL_ERROR "LibtorrentRasterbar not found or incompatible version")
+find_libtorrent(${minLibtorrent1Version})
+if (LibtorrentRasterbar_FOUND AND (LibtorrentRasterbar_VERSION VERSION_GREATER_EQUAL 2.0))
+    find_libtorrent(${minLibtorrentVersion})
 endif()
 
 # force variable type so that it always shows up in ccmake/cmake-gui frontends

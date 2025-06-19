@@ -105,8 +105,8 @@
 #endif
 #endif
 
-#ifndef DISABLE_STATICS
-#include "base/statics/statics.h"
+#ifndef DISABLE_STATISTICS
+#include "base/statistics/statistics.h"
 #endif
 
 namespace
@@ -854,8 +854,8 @@ int Application::exec()
     Net::DownloadManager::initInstance();
 
     BitTorrent::Session::initInstance();
-#ifndef DISABLE_STATICS
-    StaticsController::instance().start();
+#ifndef DISABLE_STATISTICS
+    StatisticsController::instance().start();
 #endif
 #ifndef DISABLE_GUI
     UIThemeManager::initInstance();
@@ -1354,8 +1354,8 @@ void Application::cleanup()
         if (m_desktopIntegration->menu())
             m_desktopIntegration->menu()->setEnabled(false);
     }
-#ifndef DISABLE_STATICS
-    StaticsController::instance().stop();
+#ifndef DISABLE_STATISTICS
+    StatisticsController::instance().stop();
 #endif
 
     if (m_window)

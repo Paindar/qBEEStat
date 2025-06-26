@@ -32,6 +32,7 @@ public:
     void stop(); // Stop the controller
     bool isRunning() const; // Check if the controller is running
     void setInterval(int interval); // Set the interval for the controller
+    void setDecayInterval(int decayInterval); // Set the decay interval for peers
 private:
     explicit StatisticsController() = default; // Constructor
     virtual ~StatisticsController() = default;
@@ -60,6 +61,7 @@ private:
     std::thread m_workThread; // Thread for the controller
     std::atomic<State> m_enStatus = State::Stopped; // Flag to indicate if the controller is running
     int m_interval = 1000; // Interval for the controller in milliseconds
+    int m_decayInterval = 10; // Decay interval for peers in seconds
     std::shared_ptr<DbStatisticsStorage> m_pDbStatisticsStorage; // Pointer to the database storage
     std::mutex m_mutex; // Mutex for thread safety
     std::queue<Event> m_alertQueue; // Queue for alerts
@@ -75,9 +77,10 @@ private:
     void handleTorrentStop(const BitTorrent::Torrent* torrent);
     bool handleCollectData(); // Collect data for the controller
     bool handleTorrentContributionRequested(const BitTorrent::Torrent* torrent);
-    // bool handlePeerJoined(const BitTorrent::PeerInfo& peerInfo, DB::TblPeerInfo& tblPeerInfo);
-    // bool handlePeerUpdated(const BitTorrent::PeerInfo& peerInfo, DB::TblPeerInfo& tblPeerInfo);
-    // bool handlePeerLeaving(const QString& peerId, DB::TblPeerInfo& tblPeerInfo);
+    bool handlePeerJoined(const QString& torrentHash, const BitTorrent::PeerInfo&peerInfo);
+    bool handlePeerUpdated(const QString& torrentHash, const BitTorrent::PeerInfo&peerInfo);
+    bool handlePeerDecay(const QString& torrentHash, const QString& peerIp);
+    bool handlePeerLeaving(const QString& torrentHash,const QString& peerIp);
 signals:
     void getTorrentContribution(const BitTorrent::Torrent* torrent, const QList<DB::TblContributionHistory::ContributionHistory>& result); // Signal to request contribution data for the torrent
 public slots:

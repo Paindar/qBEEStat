@@ -30,6 +30,7 @@ namespace DB
                           u"upload_bytes INTEGER, "
                           u"download_bytes INTEGER, "
                           u"start_time DATETIME, "
+                          u"ending_time DATETIME, "
                           u"PRIMARY KEY (peer_ip, torrent_hash_id)"
                           u")"_s
             );
@@ -52,6 +53,15 @@ namespace DB
         return true;
     }
 
+    bool TblPeerInfo::getPeer(const PrimaryKey &key, PeerInfo &result) const
+    {
+        if (m_cache.contains(key)) {
+            result = m_cache.value(key);
+            return true; // Peer info found
+        }
+        return false;
+    }
+
     // Get a single peer by peerIp
     bool TblPeerInfo::getPeers(const QString& torrentHashId, QList<PeerInfo>& result) const
     {
@@ -65,6 +75,20 @@ namespace DB
         }
         return true;
     }
+    
+    bool TblPeerInfo::getDeadPeers(int interval, QList<PeerInfo>& result) const
+    {
+        result.clear();
+        const QDateTime currentTime = QDateTime::currentDateTime();
+        for (const PeerInfo& peer : m_cache)
+        {
+            if (!peer.endingTime.has_value() && peer.endingTime.value().addSecs(interval) < currentTime) // Check if the peer has no ending time
+            {
+                result.append(peer);
+            }
+        }
+        return true;
+    }
 
     // Get all peers
     bool TblPeerInfo::getAllPeers(QList<PeerInfo>& peers) const
@@ -72,6 +96,11 @@ namespace DB
         if (!m_cache.isEmpty())
             peers = m_cache.values();
         return true;
+    }
+
+    bool TblPeerInfo::HasPeerInfo(const PrimaryKey &key) const
+    {
+        return m_cache.contains(key);
     }
 
     // Insert a new peer
@@ -108,6 +137,38 @@ namespace DB
         return true;
     }
 
+    bool TblPeerInfo::setPeerEndingTime(const PrimaryKey& key, const QDateTime& endingTime)
+    {
+        if (!m_cache.contains(key)) {
+            LogMsg(u"Peer info with peer IP does not exist: (%1, %2)"_s.arg(key.torrentHashId, key.peerIp), Log::WARNING);
+            return false; // Peer info does not exist
+        }
+        QString error;
+        if (!setPeerEndingTimeInDatabase(key, endingTime, error)) {
+            LogMsg(u"Failed to set peer ending time: "_s + error, Log::CRITICAL);
+            return false;
+        }
+        PeerInfo& info = m_cache[key];
+        info.endingTime = endingTime; // Update the cached info
+        return true;
+    }
+
+    bool TblPeerInfo::removePeerEndingTime(const PrimaryKey& key)
+    {
+        if (!m_cache.contains(key)) {
+            LogMsg(u"Peer info with peer IP does not exist: (%1, %2)"_s.arg(key.torrentHashId, key.peerIp), Log::WARNING);
+            return false; // Peer info does not exist
+        }
+        QString error;
+        if (!removePeerEndingTimeFromDatabase(key, error)) {
+            LogMsg(u"Failed to remove peer ending time: "_s + error, Log::CRITICAL);
+            return false;
+        }
+        PeerInfo& info = m_cache[key];
+        info.endingTime.reset(); // Remove the outgoing time
+        return true;
+    }
+
     // Delete a peer by peerIp
     bool TblPeerInfo::deletePeerInfo(const PrimaryKey& key)
     {
@@ -129,7 +190,7 @@ namespace DB
     {
         QList<PeerInfo> peers;
         QSqlQuery query(m_db);
-        query.prepare(u"SELECT peer_ip, peer_id, torrent_hash_id, upload_bytes, download_bytes, start_time FROM peer_info"_s);
+        query.prepare(u"SELECT peer_ip, peer_id, torrent_hash_id, upload_bytes, download_bytes, start_time, ending_time FROM peer_info"_s);
         if (query.exec())
         {
             while (query.next())
@@ -141,6 +202,11 @@ namespace DB
                 info.uploadBytes = query.value(3).toLongLong();
                 info.downloadBytes = query.value(4).toLongLong();
                 info.startTime = query.value(5).toDateTime();
+                if (query.isNull(6)) {
+                    info.endingTime.reset(); // No ending time
+                } else {
+                    info.endingTime = query.value(6).toDateTime();
+                }
                 peers.emplace_back(std::move(info));
             }
         } else {
@@ -184,6 +250,35 @@ namespace DB
         return true;
     }
 
+    bool TblPeerInfo::setPeerEndingTimeInDatabase(const PrimaryKey& key, const QDateTime& endingTime, QString& error)
+    {
+        QSqlQuery query(m_db);
+        query.prepare(u"UPDATE peer_info SET ending_time = :ending_time "
+            u"WHERE torrent_hash_id = :torrent_hash_id and peer_ip = :peer_ip"_s);
+        query.bindValue(u":torrent_hash_id"_s, key.torrentHashId);
+        query.bindValue(u":peer_ip"_s, key.peerIp);
+        query.bindValue(u":ending_time"_s, endingTime);
+        if (!query.exec()) {
+            error = query.lastError().text();
+            return false;
+        }
+        return true;
+    }
+
+    bool TblPeerInfo::removePeerEndingTimeFromDatabase(const PrimaryKey& key, QString& error)
+    {
+        QSqlQuery query(m_db);
+        query.prepare(u"UPDATE peer_info SET ending_time = NULL "
+            u"WHERE torrent_hash_id = :torrent_hash_id and peer_ip = :peer_ip"_s);
+        query.bindValue(u":torrent_hash_id"_s, key.torrentHashId);
+        query.bindValue(u":peer_ip"_s, key.peerIp);
+        if (!query.exec()) {
+            error = query.lastError().text();
+            return false;
+        }
+        return true;
+    }
+    
     // Delete peer info from database (for internal use)
     bool TblPeerInfo::deletePeerInfoFromDatabase(const PrimaryKey& key, QString& error)
     {

@@ -192,14 +192,6 @@
         <translation>غير معروف</translation>
     </message>
     <message>
-        <source>Share ratio limit must be between 0 and 9998.</source>
-        <translation>يجب أن يكون حد نسبة المشاركة بين 0 و9998.</translation>
-    </message>
-    <message>
-        <source>Seeding time limit must be between 0 and 525600 minutes.</source>
-        <translation>يجب أن يكون الحد الزمني للبذر بين 0 و525600 دقيقة.</translation>
-    </message>
-    <message>
         <source>Apply</source>
         <translation>تطبيق</translation>
     </message>
@@ -441,6 +433,14 @@
     </message>
     <message>
         <source>Add web seeds</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Share ratio limit must not have a negative value.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Seeding time limit must not have a negative value.</source>
         <translation type="unfinished" />
     </message>
 </context>

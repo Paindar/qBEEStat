@@ -192,14 +192,6 @@
         <translation>Neznámý</translation>
     </message>
     <message>
-        <source>Share ratio limit must be between 0 and 9998.</source>
-        <translation>Limit ratia musí být v rozsahu od 0 do 9998.</translation>
-    </message>
-    <message>
-        <source>Seeding time limit must be between 0 and 525600 minutes.</source>
-        <translation>Doba seedování musí být v rozsahu od 0 do 525600 minut.</translation>
-    </message>
-    <message>
         <source>Apply</source>
         <translation>Použít</translation>
     </message>
@@ -442,6 +434,14 @@
     <message>
         <source>Add web seeds</source>
         <translation>Přidat web seedy</translation>
+    </message>
+    <message>
+        <source>Share ratio limit must not have a negative value.</source>
+        <translation>Limit poměru sdílení nesmí být zadán jako záporné číslo.</translation>
+    </message>
+    <message>
+        <source>Seeding time limit must not have a negative value.</source>
+        <translation>Limit času seedování nesmí být zadán jako záporné číslo.</translation>
     </message>
 </context>
 <context>

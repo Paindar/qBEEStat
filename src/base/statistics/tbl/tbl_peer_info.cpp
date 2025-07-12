@@ -52,6 +52,15 @@ namespace DB
         return true;
     }
 
+    bool TblPeerInfo::getPeer(const PrimaryKey &key, PeerInfo &result) const
+    {
+        if (m_cache.contains(key)) {
+            result = m_cache.value(key);
+            return true; // Peer info found
+        }
+        return false;
+    }
+
     // Get a single peer by peerIp
     bool TblPeerInfo::getPeers(const QString& torrentHashId, QList<PeerInfo>& result) const
     {

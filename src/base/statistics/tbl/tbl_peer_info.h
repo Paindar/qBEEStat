@@ -33,6 +33,7 @@ namespace DB
         };
 
     public:
+        bool getPeer(const PrimaryKey& key, PeerInfo& result) const;
         bool getPeers(const QString& torrentHashId, QList<PeerInfo>& result) const;
         bool getAllPeers(QList<PeerInfo>& peers) const;
         bool insertPeerInfo(const PrimaryKey& key, const QString& peerId, const qint64 uploadBytes, const qint64 downloadBytes, const QDateTime& startTime);

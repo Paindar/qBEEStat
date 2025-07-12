@@ -509,29 +509,25 @@ bool StatisticsController::handleCollectData()
     }
     // Todo: Handle peer disconnect
     const QDateTime now = QDateTime::currentDateTime();
-    QList<QString> removePeers;
     for (auto it = m_peerReconnectWaiters.begin(); it != m_peerReconnectWaiters.end();)
     {
         const QString& peerIp = it.key();
         PeerReconnectWaiter& waiter = it.value();
         if (waiter.timeout <= now)
-        {            // Peer has not reconnected within the timeout period, remove it
-            LogMsg(u"Peer %1 has not reconnected within the timeout period, removing it."_s
-                   .arg(peerIp), Log::WARNING);
-            removePeers.append(peerIp);
+        {
+            for (const QString& torrentHash : waiter.torrentHashIds)
+            {
+                // Handle peer leaving for each torrent hash
+                if (!this->handlePeerLeaving(torrentHash, peerIp))
+                {
+                    LogMsg(u"Failed to handle peer leaving for peer %1 in torrent %2."_s.arg(peerIp, torrentHash), Log::CRITICAL);
+                }
+            }
             it = m_peerReconnectWaiters.erase(it); // Remove the peer from the waiters
         }
         else
         {         // Peer is still waiting to reconnect, move to the next one
             ++it;
-        }
-    }
-    for (const QString& peerIp : removePeers)
-    {
-        // Remove the peer from the database
-        if (!this->handlePeerLeaving(torrentHash, peerIp))
-        {
-            LogMsg(u"Failed to handle peer leaving for peer %1 in torrent %2."_s.arg(peerIp, torrentHash), Log::CRITICAL);
         }
     }
     return true; // Return true if data collection was successful, false otherwise
@@ -654,7 +650,7 @@ bool StatisticsController::handlePeerLeaving(const QString &torrentHash, const Q
         peerInfo.uploadBytes,
         peerInfo.downloadBytes,
         peerInfo.startTime,
-        peerInfo.endingTime.value_or(QDateTime::currentDateTime())))
+        QDateTime::currentDateTime()))
     {
         LogMsg(u"Failed to insert contribution history into the database, peer IP: %1, torrent hash: %2, upload bytes: %3, download bytes: %4, start time: %5."_s
                 .arg(peerIp, torrentHash, QString::number(peerInfo.uploadBytes), QString::number(peerInfo.downloadBytes), peerInfo.startTime.toString()), Log::CRITICAL);

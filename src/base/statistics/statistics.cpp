@@ -33,7 +33,8 @@ void StatisticsController::stop()
     unsubscribeAlert();
     m_enStatus.store(State::Stopped);
     handleStatisticsStop();
-    m_workThread.join();
+    if (m_workThread.joinable())
+        m_workThread.join();
 }
 bool StatisticsController::isRunning() const
 {
@@ -43,6 +44,12 @@ void StatisticsController::setInterval(int interval)
 {
     m_interval = interval;
 }
+
+void StatisticsController::setReconnectWindow(int seconds)
+{
+    m_reconnectWindow = seconds;
+}
+
 bool StatisticsController::subscribeAlert()
 {
     BitTorrent::Session *session = BitTorrent::SessionImpl::instance();
@@ -428,9 +435,7 @@ bool StatisticsController::handleCollectData()
     DbStatisticsStorage &db = DbStatisticsStorage::instance();
     BitTorrent::SessionImpl *session = static_cast<BitTorrent::SessionImpl*>(BitTorrent::SessionImpl::instance());
     if (!session) return false; // Check if session is valid
-    DB::TblPeerHistory& tblPeerHistory = db.getPeerHistoryTable();
     DB::TblPeerInfo& tblPeerInfo = db.getPeerInfoTable();
-    DB::TblContributionHistory& tblContributionHistory = db.getContributionHistoryTable();
     QString error;
     for(const BitTorrent::Torrent* torrent : session->torrents())
     {
@@ -468,34 +473,22 @@ bool StatisticsController::handleCollectData()
             if (it == peer2Index.end())
             {
                 // New peer joined
-                if (!tblPeerInfo.insertPeerInfo({torrentHash, peerIp}, peerId , peerInfo.totalUpload(), peerInfo.totalDownload(), QDateTime::currentDateTime()))
+                if (!this->handlePeerJoined(torrentHash, peerInfo))
                 {
-                    LogMsg(u"Failed to insert peer info into the database, torrent hash: %1, peerIp: %2, peerId: %3, upload: %4, download: %5."_s
-                           .arg(torrentHash, peerIp, peerId, QString::number(peerInfo.totalUpload()), QString::number(peerInfo.totalDownload())), Log::CRITICAL);
-                    continue;
-                }
-                QList<QString> args;
-                // Args: hashid name
-                {
-                    QString pid = peerId;
-                    pid.replace(u"|"_s, u"\\|"_s);
-                    args.append(pid);
-                }
-                if (!tblPeerHistory.insertTorrentHistory(peerIp, torrentHash, u"joined"_s, args.join(u"||"_s)))
-                {
-                    LogMsg(u"Failed to insert peer history into the database, peer IP: %1, torrent hash: %2, event: joined."_s
-                           .arg(peerIp, torrentHash), Log::CRITICAL);
-                    continue;
+                    LogMsg(u"Failed to handle peer joined, torrent hash: %1, peer IP: %2."_s
+                           .arg(torrentHash, peerIp), Log::CRITICAL);
+                    continue; // Skip to the next peer if there was an error
                 }
             }
             else
             {
                 // Update existing peer info
                 mapPeerAlive[peerIp] = true; // Mark peer as alive
-                if (!tblPeerInfo.updateTraffic({torrentHash, peerIp}, peerInfo.totalUpload(), peerInfo.totalDownload()))
+                if (!this->handlePeerUpdated(torrentHash, peerInfo))
                 {
-                    qDebug() << "Failed to update peer info in the database:" << error;
-                    continue;
+                    LogMsg(u"Failed to handle peer updated, torrent hash: %1, peer IP: %2."_s
+                           .arg(torrentHash, peerIp), Log::CRITICAL);
+                    continue; // Skip to the next peer if there was an error
                 }
             }
         }
@@ -504,40 +497,41 @@ bool StatisticsController::handleCollectData()
         {
             if (!alive)
             {
-                const int index = peer2Index[peerIp];
-                const DB::TblPeerInfo::PeerInfo &peerInfo = peerInfos[index];
                 // Peer is no longer alive, update peer info
-                if (!tblContributionHistory.insertContributionHistory(torrentHash, peerIp,
-                    //peerInfo.peerId,
-                    peerInfo.uploadBytes,
-                    peerInfo.downloadBytes,
-                    peerInfo.startTime,
-                    QDateTime::currentDateTime()))
+                if (!this->handlePeerDecay(torrentHash, peerIp))
                 {
-                    LogMsg(u"Failed to insert contribution history into the database, peer IP: %1, torrent hash: %2, upload bytes: %3, download bytes: %4, start time: %5."_s
-                           .arg(peerIp, torrentHash, QString::number(peerInfo.uploadBytes), QString::number(peerInfo.downloadBytes), peerInfo.startTime.toString()), Log::CRITICAL);
-                    continue;
-                }
-                if(!tblPeerInfo.deletePeerInfo({torrentHash, peerIp}))
-                {
-                    LogMsg(u"Failed to delete peer info from the database, peer IP: %1, torrent hash: %2."_s
-                           .arg(peerIp, torrentHash), Log::CRITICAL);
-                    continue;
-                }
-                QList<QString> args;
-                // Args: hashid name
-                {
-                    QString pid = peerInfo.peerId;
-                    pid.replace(u"|"_s, u"\\|"_s);
-                    args.append(pid);
-                }
-                if (!tblPeerHistory.insertTorrentHistory(peerIp, torrentHash, u"left"_s, args.join(u"||"_s)))
-                {
-                    LogMsg(u"Failed to insert peer history into the database, peer IP: %1, torrent hash: %2, event: left."_s
-                           .arg(peerIp, torrentHash), Log::CRITICAL);
-                    continue;
+                    LogMsg(u"Failed to handle peer leaving, torrent hash: %1, peer IP: %2."_s
+                           .arg(torrentHash, peerIp), Log::CRITICAL);
+                    continue; // Skip to the next peer if there was an error
                 }
             }
+        }
+    }
+    // Todo: Handle peer disconnect
+    const QDateTime now = QDateTime::currentDateTime();
+    QList<QString> removePeers;
+    for (auto it = m_peerReconnectWaiters.begin(); it != m_peerReconnectWaiters.end();)
+    {
+        const QString& peerIp = it.key();
+        PeerReconnectWaiter& waiter = it.value();
+        if (waiter.timeout <= now)
+        {            // Peer has not reconnected within the timeout period, remove it
+            LogMsg(u"Peer %1 has not reconnected within the timeout period, removing it."_s
+                   .arg(peerIp), Log::WARNING);
+            removePeers.append(peerIp);
+            it = m_peerReconnectWaiters.erase(it); // Remove the peer from the waiters
+        }
+        else
+        {         // Peer is still waiting to reconnect, move to the next one
+            ++it;
+        }
+    }
+    for (const QString& peerIp : removePeers)
+    {
+        // Remove the peer from the database
+        if (!this->handlePeerLeaving(torrentHash, peerIp))
+        {
+            LogMsg(u"Failed to handle peer leaving for peer %1 in torrent %2."_s.arg(peerIp, torrentHash), Log::CRITICAL);
         }
     }
     return true; // Return true if data collection was successful, false otherwise
@@ -567,6 +561,128 @@ bool StatisticsController::handleTorrentContributionRequested(const BitTorrent::
     return true; // Return true if contribution data was successfully retrieved
 }
 
+bool StatisticsController::handlePeerJoined(const QString& torrentHash, const BitTorrent::PeerInfo&peerInfo)
+{
+    DB::TblPeerInfo& tblPeerInfo = DbStatisticsStorage::instance().getPeerInfoTable();
+    const QString& peerIp = peerInfo.address().toString();
+    const QString& peerId = peerInfo.peerId();
+    // Check if connect is in the reconnect window
+    auto it = m_peerReconnectWaiters.find(peerIp);
+    if (it != m_peerReconnectWaiters.end())
+    {
+        return true; // Peer is already in the reconnect window, no need to handle again
+    }
+    // Add peer info to the database
+    if (!tblPeerInfo.insertPeerInfo({torrentHash, peerIp}, peerId , peerInfo.totalUpload(), peerInfo.totalDownload(), QDateTime::currentDateTime()))
+    {
+        LogMsg(u"Failed to insert peer info into the database, torrent hash: %1, peerIp: %2, peerId: %3, upload: %4, download: %5."_s
+                .arg(torrentHash, peerIp, peerId, QString::number(peerInfo.totalUpload()), QString::number(peerInfo.totalDownload())), Log::CRITICAL);
+        return false;
+    }
+    QList<QString> args;
+    // Args: hashid name
+    {
+        QString pid = peerId;
+        pid.replace(u"|"_s, u"\\|"_s);
+        args.append(pid);
+    }
+    DB::TblPeerHistory& tblPeerHistory = DbStatisticsStorage::instance().getPeerHistoryTable();
+    if (!tblPeerHistory.insertTorrentHistory(peerIp, torrentHash, u"joined"_s, args.join(u"||"_s)))
+    {
+        LogMsg(u"Failed to insert peer history into the database, peer IP: %1, torrent hash: %2, event: joined."_s
+                .arg(peerIp, torrentHash), Log::CRITICAL);
+        return false;
+    }
+    return true;
+}
+
+bool StatisticsController::handlePeerUpdated(const QString &torrentHash, const BitTorrent::PeerInfo &peerInfo)
+{
+    DB::TblPeerInfo& tblPeerInfo = DbStatisticsStorage::instance().getPeerInfoTable();
+    const QString& peerIp = peerInfo.address().toString();
+    return tblPeerInfo.updateTraffic({torrentHash, peerIp}, peerInfo.totalUpload(), peerInfo.totalDownload());
+}
+
+bool StatisticsController::handlePeerDecay(const QString &torrentHash, const QString &peerIp)
+{
+    // Check if the peer is in the reconnect window
+    auto it = m_peerReconnectWaiters.find(peerIp);
+    if (it == m_peerReconnectWaiters.end())
+    {
+        // Peer is not in the reconnect window, add it
+        PeerReconnectWaiter waiter;
+        waiter.timeout = QDateTime::currentDateTime().addSecs(m_reconnectWindow);
+        waiter.torrentHashIds.append(torrentHash);
+        // Add the peer to the reconnect waiters
+        m_peerReconnectWaiters[peerIp] = waiter;
+        LogMsg(u"Peer %1 is in the reconnect window now."_s.arg(peerIp), Log::INFO);
+    }
+    else
+    {
+        // Add torrentHash to the existing peer in the reconnect window
+        PeerReconnectWaiter& waiter = it.value();
+        if (!waiter.torrentHashIds.contains(torrentHash))
+        {
+            waiter.torrentHashIds.append(torrentHash);
+            LogMsg(u"Peer %1 is already in the reconnect window, added torrent hash: %2."_s
+                   .arg(peerIp, torrentHash), Log::INFO);
+        }
+        else
+        {
+            LogMsg(u"Peer %1 is already in the reconnect window with torrent hash: %2."_s
+                   .arg(peerIp, torrentHash), Log::INFO);
+            return false; // Peer is already in the reconnect window, no need to add again
+        }
+    }
+    return true; // Return true if peer was added to the reconnect window
+}
+
+bool StatisticsController::handlePeerLeaving(const QString &torrentHash, const QString &peerIp)
+{
+    DB::TblPeerInfo& tblPeerInfo = DbStatisticsStorage::instance().getPeerInfoTable();
+    DB::TblContributionHistory& tblContributionHistory = DbStatisticsStorage::instance().getContributionHistoryTable();
+    DB::TblPeerInfo::PeerInfo peerInfo;
+    if (!tblPeerInfo.getPeer({torrentHash, peerIp}, peerInfo))
+    {
+        LogMsg(u"Failed to get peer info from the database, torrent hash: %1, peer IP: %2."_s
+               .arg(torrentHash, peerIp), Log::CRITICAL);
+        return false; // Return false if there was an error
+    }
+    // Peer is no longer alive, update peer info
+    if (!tblContributionHistory.insertContributionHistory(torrentHash, peerIp,
+        //peerInfo.peerId,
+        peerInfo.uploadBytes,
+        peerInfo.downloadBytes,
+        peerInfo.startTime,
+        peerInfo.endingTime.value_or(QDateTime::currentDateTime())))
+    {
+        LogMsg(u"Failed to insert contribution history into the database, peer IP: %1, torrent hash: %2, upload bytes: %3, download bytes: %4, start time: %5."_s
+                .arg(peerIp, torrentHash, QString::number(peerInfo.uploadBytes), QString::number(peerInfo.downloadBytes), peerInfo.startTime.toString()), Log::CRITICAL);
+        return false; // Return false if there was an error
+    }
+    if(!tblPeerInfo.deletePeerInfo({torrentHash, peerIp}))
+    {
+        LogMsg(u"Failed to delete peer info from the database, peer IP: %1, torrent hash: %2."_s
+                .arg(peerIp, torrentHash), Log::CRITICAL);
+        return false; // Return false if there was an error
+    }
+    QList<QString> args;
+    // Args: hashid name
+    {
+        QString pid = peerInfo.peerId;
+        pid.replace(u"|"_s, u"\\|"_s);
+        args.append(pid);
+    }
+    DB::TblPeerHistory& tblPeerHistory = DbStatisticsStorage::instance().getPeerHistoryTable();
+    if (!tblPeerHistory.insertTorrentHistory(peerIp, torrentHash, u"left"_s, args.join(u"||"_s)))
+    {
+        LogMsg(u"Failed to insert peer history into the database, peer IP: %1, torrent hash: %2, event: left."_s
+                .arg(peerIp, torrentHash), Log::CRITICAL);
+        return false; // Return false if there was an error
+    }
+    return true; // Return true if peer leaving was handled successfully
+}
+
 void StatisticsController::onTorrentAdded(BitTorrent::Torrent *torrent)
 {
     if (!torrent) return; // Check if torrent is valid
@@ -582,7 +698,7 @@ void StatisticsController::onTorrentFinished(BitTorrent::Torrent *torrent)
     if (!torrent) return; // Check if torrent is valid
     std::scoped_lock lock(this->m_mutex);
     this->m_alertQueue.push({
-        AlertType::TorrentAdded,
+        AlertType::TorrentFinished,
         torrent,
         nullptr
     });

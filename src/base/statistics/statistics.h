@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
+#include <QDateTime>
 #include <thread>
 #include <atomic>
 #include <memory>
@@ -32,6 +34,7 @@ public:
     void stop(); // Stop the controller
     bool isRunning() const; // Check if the controller is running
     void setInterval(int interval); // Set the interval for the controller
+    void setReconnectWindow(int seconds); // Set the decay interval for peers
 private:
     explicit StatisticsController() = default; // Constructor
     virtual ~StatisticsController() = default;
@@ -57,12 +60,20 @@ private:
         const BitTorrent::Torrent* torrent;
         std::shared_ptr<BitTorrent::InfoHash::WrappedType> infoHash;
     };
+    struct PeerReconnectWaiter
+    {
+        QString peerIp;
+        QList<QString> torrentHashIds; // List of torrent hash IDs the peer is connected to
+        QDateTime timeout; // Timeout for the peer to reconnect
+    };
     std::thread m_workThread; // Thread for the controller
     std::atomic<State> m_enStatus = State::Stopped; // Flag to indicate if the controller is running
     int m_interval = 1000; // Interval for the controller in milliseconds
+    int m_reconnectWindow = 10; // Decay interval for peers in seconds
     std::shared_ptr<DbStatisticsStorage> m_pDbStatisticsStorage; // Pointer to the database storage
     std::mutex m_mutex; // Mutex for thread safety
     std::queue<Event> m_alertQueue; // Queue for alerts
+    QHash<QString, PeerReconnectWaiter> m_peerReconnectWaiters; // Hash table to store peer reconnect waiters
 private:
     // private tool methods
     QString getHashId(const BitTorrent::InfoHash &torrentID) const;
@@ -75,9 +86,10 @@ private:
     void handleTorrentStop(const BitTorrent::Torrent* torrent);
     bool handleCollectData(); // Collect data for the controller
     bool handleTorrentContributionRequested(const BitTorrent::Torrent* torrent);
-    // bool handlePeerJoined(const BitTorrent::PeerInfo& peerInfo, DB::TblPeerInfo& tblPeerInfo);
-    // bool handlePeerUpdated(const BitTorrent::PeerInfo& peerInfo, DB::TblPeerInfo& tblPeerInfo);
-    // bool handlePeerLeaving(const QString& peerId, DB::TblPeerInfo& tblPeerInfo);
+    bool handlePeerJoined(const QString& torrentHash, const BitTorrent::PeerInfo&peerInfo);
+    bool handlePeerUpdated(const QString& torrentHash, const BitTorrent::PeerInfo&peerInfo);
+    bool handlePeerDecay(const QString& torrentHash, const QString& peerIp);
+    bool handlePeerLeaving(const QString& torrentHash,const QString& peerIp);
 signals:
     void getTorrentContribution(const BitTorrent::Torrent* torrent, const QList<DB::TblContributionHistory::ContributionHistory>& result); // Signal to request contribution data for the torrent
 public slots:
